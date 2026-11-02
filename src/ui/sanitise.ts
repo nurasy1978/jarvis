@@ -101,7 +101,12 @@ function toEmbedUrl(url: URL): URL | null {
   if (host === 'youtube.com' && url.pathname === '/watch') id = url.searchParams.get('v') ?? ''
   else if (host === 'youtu.be') id = url.pathname.slice(1)
   if (!YT_ID.test(id)) return null
-  return new URL(`https://www.youtube-nocookie.com/embed/${id}`)
+  const embed = new URL(`https://www.youtube-nocookie.com/embed/${id}`)
+  // Keep the moment a watch link points at. The YouTube tools write `t=90s`;
+  // any other form simply starts the video at the beginning.
+  const t = /^(\d+)s?$/.exec(url.searchParams.get('t') ?? '')?.[1]
+  if (t && Number(t) > 0) embed.searchParams.set('start', t)
+  return embed
 }
 
 function rewriteEmbeds(root: Element) {
