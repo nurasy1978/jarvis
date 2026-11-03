@@ -164,6 +164,31 @@ A few things you can say:
 > account** are not stored on disk, so the bridge cannot see them — it works from
 > the servers in `~/.claude.json` (about 14), not the claude.ai ones.
 
+### YouTube
+
+JARVIS has three YouTube skills built into the bridge (`bridge/youtube.mjs`).
+They need no API key; they read the same public pages a browser loads.
+
+- `youtube_search`: finds videos, with title, channel, length, views, age and
+  a thumbnail. Sort by relevance, newest, or most watched.
+- `youtube_video`: looks one video up: description, upload date, chapters,
+  and which caption languages exist.
+- `youtube_transcript`: reads what is said in a video, as lines stamped with
+  their time. It prefers human-written captions to automatic ones, and can read
+  a single stretch (`from`/`to`, in seconds) of a long video.
+
+Together they let him answer questions about what is *in* a video, not just
+what it is called, and open the player at the right moment. A watch link with
+`&t=<seconds>s` opens the embed blade at that second.
+
+- *"Find me a video on how arc welding works."*
+- *"Summarise that video."*
+- *"Skip to the part where he talks about the battery."*
+
+All three are reads, so they run in the default read-only mode. YouTube
+reshapes its pages from time to time. If search or transcripts stop returning
+anything, the parsers in `bridge/youtube.mjs` are the place to look.
+
 ### JARVIS controls the interface
 
 He drives the UI through MCP tools the bridge exposes:

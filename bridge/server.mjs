@@ -21,6 +21,7 @@ import { displayServer } from './panels.mjs'
 import { uiServer } from './ui.mjs'
 import { chromeAvailable, chromeServer } from './chrome.mjs'
 import { visionServer } from './vision.mjs'
+import { youtubeServer } from './youtube.mjs'
 import { homedir, tmpdir } from 'node:os'
 import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -279,6 +280,12 @@ function decideTool(name) {
     // indicator the user can see for as long as it is live.
     if (server === 'jarvis_eyes') return true
 
+    // YouTube. Search, details and transcripts — reads of public pages, with
+    // every request built against a fixed host, so nothing here acts on the
+    // world. Named rather than left to the verb rules, which would read
+    // `youtube_search` as a write because it does not begin with a read verb.
+    if (server === 'jarvis_youtube') return true
+
     const tool = mcpToolOf(name)
     if (EFFECTFUL_VERB.test(tool) && !VETO_EXEMPT.has(`${server}__${tool}`)) {
       return ALLOW_WRITES
@@ -425,6 +432,18 @@ Your eyes:
   will see it. Curiosity is not a reason.
 - Describe a watch as a sequence — what changed between the frames — not as a
   list of pictures. They know what their own hands look like.
+
+YouTube:
+- \`youtube_search\` finds videos, \`youtube_video\` looks one up, and
+  \`youtube_transcript\` reads what is said in it. Reach for these, not a web
+  search, whenever the user asks for a video or about one.
+- To play a video, open its URL on a blade with kind "embed". A URL carrying
+  \`&t=<seconds>s\` opens the player at that moment — use it whenever you have
+  pointed at a particular part.
+- Never describe or summarise a video from its title or thumbnail. Read the
+  transcript first, then say what it means in a sentence or two.
+- "Skip to the part about X" is a transcript search: find the line, then open
+  the player at its timestamp.
 
 Using tools:
 - You have real tools on this machine. Use them rather than guessing.
@@ -1214,6 +1233,9 @@ wss.on('connection', (socket) => {
         jarvis_chrome: chromeServer({ allowWrites: ALLOW_WRITES }),
         // The camera, which unlike everything else here has to ask and wait.
         jarvis_eyes: visionServer(ask),
+        // YouTube search, details and transcripts. Stateless; built here with
+        // the rest so every in-process server is declared in one place.
+        jarvis_youtube: youtubeServer(),
       },
       // A plain system prompt, not the claude_code preset. The preset is
       // tuned for a coding agent — verbose, file-oriented, and a large chunk

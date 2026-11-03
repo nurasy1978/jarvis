@@ -80,13 +80,21 @@ function embedUrl(raw: string): string | null {
   const host = url.hostname.toLowerCase().replace(/^(?:www|m|music)\./, '')
   const id = (s: string) => (/^[\w-]{6,20}$/.test(s) ? s : null)
 
+  // A watch link carrying `t=` is JARVIS pointing at a moment — "skip to the
+  // part about the reactor" — so the player opens there rather than at zero.
+  const start = startSeconds(url.searchParams.get('t') ?? url.searchParams.get('start'))
+  const yt = (v: string | null) =>
+    v && `https://www.youtube-nocookie.com/embed/${v}${start ? `?start=${start}` : ''}`
+
   if (host === 'youtube.com' && url.pathname === '/watch') {
-    const v = id(url.searchParams.get('v') ?? '')
-    return v && `https://www.youtube-nocookie.com/embed/${v}`
+    return yt(id(url.searchParams.get('v') ?? ''))
+  }
+  if (host === 'youtube.com') {
+    const m = /^\/(?:shorts|live)\/([\w-]+)/.exec(url.pathname)
+    if (m) return yt(id(m[1]))
   }
   if (host === 'youtu.be') {
-    const v = id(url.pathname.slice(1))
-    return v && `https://www.youtube-nocookie.com/embed/${v}`
+    return yt(id(url.pathname.slice(1)))
   }
   if (host === 'youtube-nocookie.com' && /^\/embed\/[\w-]+/.test(url.pathname)) return url.href
   if (host === 'vimeo.com') {
@@ -95,6 +103,18 @@ function embedUrl(raw: string): string | null {
   }
   if (host === 'player.vimeo.com' && /^\/video\/\d+/.test(url.pathname)) return url.href
   return null
+}
+
+/**
+ * A YouTube `t` value in seconds: "90", "90s", "1m30s", "1h2m3s". Zero for
+ * anything else, which simply starts the video at the beginning.
+ */
+function startSeconds(raw: string | null): number {
+  const s = (raw ?? '').trim().toLowerCase()
+  if (/^\d+s?$/.test(s)) return parseInt(s, 10)
+  const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(s)
+  if (!m || !s) return 0
+  return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0)
 }
 
 /* --------------------------------------------------------------------- body */
